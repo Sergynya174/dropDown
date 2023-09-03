@@ -1,0 +1,14 @@
+.App {
+    display: grid;
+    place-content: center;
+    height: 100vh;
+    width: 100%;
+}
+
+.container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    gap: 10px;
+}
