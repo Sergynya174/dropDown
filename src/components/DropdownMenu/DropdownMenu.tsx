@@ -1,6 +1,7 @@
 import {useState, useEffect, useRef} from "react";
 import { createPortal } from "react-dom";
 import './DropdownMenu.css'
+import {data} from "../../utils/data"
 
 interface DropdownMenuProps {
   number: number;
@@ -9,6 +10,8 @@ interface DropdownMenuProps {
 }
 
 export const DropdownMenu: React.FC<DropdownMenuProps> = ({number, onToggle, isOpen}) => {
+  const [isTextSelected, setIsTextSelected] = useState<boolean>(false);
+  const resultRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLUListElement>(null);
   const dropdownOpenDown = useRef<boolean>(true);
@@ -16,12 +19,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({number, onToggle, isO
   const [dropdownDirection, setDropdownDirection] = useState<string>('down-right');
   const [activeElement, setActiveElement] = useState<Element | null>(null);
 
-  const data = [
-    "item 1", "item 2", "item 3", "item 4", "item 5"
-  ]
-
   useEffect(() => {
-    
     const recalculateDropdownDirection = () => {
       if (isOpen && buttonRef.current && dropdownRef.current) {
         const buttonRect = buttonRef.current.getBoundingClientRect();
@@ -54,11 +52,30 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({number, onToggle, isO
 
     recalculateDropdownDirection();
 
+    const handleScroll = () => {
+      recalculateDropdownDirection();
+
+      if (!buttonRef.current) return;
+  
+      const buttonRect = buttonRef.current.getBoundingClientRect();
+  
+      if (buttonRect.top < 0 || buttonRect.bottom > window.innerHeight) {
+        if (isOpen) {
+          onToggle(-1);
+        }
+      } else {
+        if (activeElement) {
+          onToggle(isOpen ? -1 : number);
+        }
+      }
+    }
+
     const handleResize = () => {
       recalculateDropdownDirection();
     };
 
     window.addEventListener('resize', handleResize);
+    window.addEventListener("scroll", handleScroll);
   
     if (isOpen) {
       setActiveElement(document.activeElement);
@@ -68,6 +85,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({number, onToggle, isO
     
     return () => {
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener("scroll", handleScroll);
     };
 
   
@@ -92,6 +110,14 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({number, onToggle, isO
     return { top, left };
   };
 
+  const handleClick = (e: React.MouseEvent<HTMLLIElement, MouseEvent>) => {
+    if (resultRef.current && e.target) {
+      resultRef.current.innerText = (e.target as HTMLElement).textContent || "";
+      setIsTextSelected(true);
+    }
+    onToggle(-1);
+  }
+
   const renderDropdown = () => {
     if (!isOpen || !buttonRef.current) return null;
   
@@ -102,9 +128,10 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({number, onToggle, isO
   
     return createPortal(
       <ul ref={dropdownRef} className={`ul ${dropdownDirection}`} style={menuStyles}>
-        {data.map((item) => (
-          <li className="li" key={item}>
-            {item}
+        {data.map((item, index) => (
+          <li className="li" key={index} onClick={(e) => handleClick(e)}>
+            {item.text}
+            <img className="img" src={item.img} alt="img" />
           </li>
         ))}
       </ul>,
@@ -113,11 +140,12 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({number, onToggle, isO
   };
   
   return (
-      <>
-        <button className="button" ref={buttonRef} onClick={handleTriggerClick}>
-          {number}
-        </button>
-        {renderDropdown()}
+    <>
+      <div className="container-button">
+        <button className="button" ref={buttonRef} onClick={handleTriggerClick}></button>
+        <div className="result" style={isTextSelected ? { display: 'block' } : {}} ref={resultRef}></div>
+      </div>
+      {renderDropdown()}
     </>
   );
 };
